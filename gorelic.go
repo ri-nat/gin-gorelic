@@ -1,7 +1,6 @@
 package gorelic
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -9,22 +8,12 @@ import (
 	"github.com/yvasiyarov/gorelic"
 )
 
-var agent *gorelic.Agent
-
-// Handler for the agent
-func Handler(c *gin.Context) {
-	startTime := time.Now()
-	c.Next()
-	if agent != nil {
-		agent.HTTPTimer.UpdateSince(startTime)
-	}
-}
-
-// InitNewrelicAgent creates the new relic agent
-func InitNewrelicAgent(license string, appname string, verbose bool) error {
+// NewrelicAgentMiddleware inits gorelic's NewRelic object and returns handler function
+func NewrelicAgentMiddleware(license string, appname string, verbose bool) gin.HandlerFunc {
+	var agent *gorelic.Agent
 
 	if license == "" {
-		return fmt.Errorf("Please specify NewRelic license")
+		return nil
 	}
 
 	agent = gorelic.NewAgent()
@@ -36,5 +25,13 @@ func InitNewrelicAgent(license string, appname string, verbose bool) error {
 
 	agent.NewrelicName = appname
 	agent.Run()
-	return nil
+
+	return func(c *gin.Context) {
+		startTime := time.Now()
+		c.Next()
+
+		if agent != nil {
+			agent.HTTPTimer.UpdateSince(startTime)
+		}
+	}
 }
